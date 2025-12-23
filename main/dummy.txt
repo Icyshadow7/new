@@ -1,0 +1,184 @@
+<?php
+session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// 1. **Define variables from session**
+// NOTE: I corrected 'user_name' to 'fullname' to match the variable set in login.php
+$userId = $_SESSION['user_id'] ?? '';
+$fullName = $_SESSION['fullname'] ?? ''; // Use 'fullname' as set in the login script
+$loggedIn = $_SESSION['logged_in'] ?? FALSE;
+
+// 2. **Authentication Check (Redirect to login if the user is not authenticated)**
+// This logic is typically used on *restricted* pages (like a dashboard or profile).
+// Since this is the home page, we only check if the user is logged in for the NAVBAR GREETING.
+// We only need to implement a full redirect check on pages like 'room_detail.php' or 'booking.php'.
+
+// Example of the redirect logic for a restricted page (e.g., dashboard.php):
+/*
+if (!$loggedIn) {
+    header("Location: login.php");
+    exit();
+}
+*/
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aashish's E-commerce - Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="index.css"> 
+    <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+/* --- STYLES FOR CORE COMPONENTS (Kept from original) --- */
+body { margin: 0; font-family: sans-serif; }
+.navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background-color: #333; color: white; }
+.navbar .logo a { color: white; text-decoration: none; font-size: 1.5em; font-weight: bold; }
+.nav-links { display: flex; list-style: none; }
+.nav-links li a { color: white; text-decoration: none; padding: 0 15px; }
+.hero { background: url('your_hero_image.jpg') no-repeat center center/cover; height: 400px; display: flex; justify-content: center; align-items: center; text-align: center; color: white; }
+.hero-text h1 { font-size: 3em; }
+.hero-text p { font-size: 1.2em; margin-bottom: 20px; }
+.btn { padding: 20px 30px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px; }
+..login-btn, .loggedin-btn { background-color: #3ff78bff; padding: 18px 900px; border-radius: 5px; }
+
+/* NOTE: The padding 18px 900px on the login/logout buttons seems extremely wide. I recommend reducing the 900px to something like 20px. */
+.rooms-container { display:flex; flex-wrap:wrap; justify-content:center; padding:20px; background-color: bisque; }
+.room-card { background:rgb(241, 232, 232); border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.2); margin:15px; width:320px; overflow:hidden; transition:transform 0.2s; }
+.room-card img { width:100%; height:200px; object-fit:cover; transition: all 1.4s; }
+.room-card:hover img { transform: scale(1.1); }
+.room-info { padding:15px; }
+.view-btn { display:inline-block; margin-top:10px; padding:10px 20px; background-color:#2196F3; color:white; text-decoration:none; border-radius:5px; }
+.footer-bottom { background-color: #333; color: white; text-align: center; padding: 15px 0;}
+.nav-links li a #lgn{
+padding:20px;
+} 
+</style>
+
+</head>
+
+<body id="hy">
+
+<nav class="navbar">
+    <div class="logo">
+        <a href="index.php">QUICK BOOK</a>
+    </div>
+
+    <ul class="nav-links">
+        <li><a href="index.php" id="homeline">Home</a></li>
+        <li><a href="room.php">Available Rooms</a></li>
+        <li><a href="#foooter">Contact</a></li>
+
+     <li>
+         <li>
+            <?php if($loggedIn): ?> 
+                <a href="dashboard.php" class="loggedin-btn">
+                    <i class="fa-solid fa-user profile-icon"></i> 
+                  
+                </a>
+            <?php else: ?>
+                <a href="login.php" class="login-btn" id="lgn">Log In / Sign Up</a> 
+            <?php endif; ?>
+        </li>
+    </ul>
+</nav>
+
+<header class="hero">
+    <div class="hero-text">
+        <h1> Quick Book</h1>
+        <p> Fastest room booking website. </p>
+        <a href="room.php" class="btn" id="ii"> Book Now </a>
+    </div>
+</header>
+
+
+<div class="rooms-container" id="rooms-container"></div>
+
+<script>
+// Rooms data (JavaScript remains unchanged)
+const rooms = [
+    {
+        id: 1,
+        name: "123 Main Street",
+        phone: "9876543210",
+        type: "Single Room",
+        price: "$150/month",
+        image: "images/1.jpg"
+    },
+    {
+        id: 2,
+        name: "456 Park Avenue",
+        phone: "9123456780",
+        type: "Double Room",
+        price: "$250/month",
+        image: "images/2.jpg"
+    },
+    {
+        id: 3,
+        name: "789 Lakeview Road",
+        phone: "9871122334",
+        type: "Studio",
+        price: "$200/month",
+        image: "images/3.jpg"
+    },
+    {
+        id: 4,
+        name: "789 Lakeview Road",
+        phone: "9871134",
+        type: "Sleep",
+        price: "$280/month",
+        image: "images/4.jpg"
+    }
+];
+
+const container = document.getElementById('rooms-container');
+rooms.forEach(room => {
+    container.innerHTML += `
+        <div class="room-card">
+            <img src="${room.image}" alt="${room.name}">
+            <div class="room-info">
+                <h3>${room.name}</h3>
+                <p><strong>Phone:</strong> ${room.phone}</p>
+                <p><strong>Type:</strong> ${room.type}</p>
+                <p class="price"><strong>Price:</strong> ${room.price}</p>
+                <a href="room_detail.php?id=${room.id}" class="view-btn">View Details</a>
+            </div>
+        </div>
+    `;
+});
+</script>
+
+<header class="about-header">
+    <h1>🌐 About RoamEasy: Your Journey, Simplified</h1>
+</header>
+
+<footer id="foooter">
+    <div class="footer-bottom">
+        © 2025 Mrzn's. All rights reserved.
+    </div>
+</footer>
+
+</body>
+</html>
+
+
+
+data base code 
+INSERT INTO rooms (room_name, price, location, phone, image) VALUES
+('Deluxe Single Room', 1500, 'Kathmandu', '9841230001', '1.jpg'),
+('Premium Double Room', 2400, 'Pokhara', '9841230002', '2.jpg'),
+('Family Suite', 3500, 'Lalitpur', '9841230003', '3.jpg'),
+('Budget Room', 900, 'Bhaktapur', '9841230004', '4.jpg'),
+('Executive Room', 2800, 'Butwal', '9841230005', '5.jpg'),
+('Luxury King Suite', 4500, 'Chitwan', '9841230006', '6.jpg'),
+('Standard Twin Room', 1800, 'Dharan', '9841230007', '7.jpg'),
+('Mountain View Room', 3200, 'Nagarkot', '9841230008', '8.jpg');
+
+
+PahunaStay
