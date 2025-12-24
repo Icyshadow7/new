@@ -10,6 +10,8 @@ function safe($v) { return htmlspecialchars($v ?? "", ENT_QUOTES, "UTF-8"); }
 $userId   = $_SESSION['user_id'] ?? '';
 $fullName = $_SESSION['fullname'] ?? '';
 $loggedIn = $_SESSION['logged_in'] ?? false;
+$isAdmin = $loggedIn && (($_SESSION['role'] ?? '') === 'admin');
+
 
 $initial = strtoupper(substr($fullName ?: 'U', 0, 1));
 
@@ -63,6 +65,10 @@ body{
   background:#333;
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
+a {
+  text-decoration: none;
+}
+
 .logo{
   display:flex; align-items:center; gap:10px;
   font-weight:800; letter-spacing:.3px; color:#fff;
@@ -608,19 +614,26 @@ body{
     <li><a href="#footer">Contact</a></li>
   </ul>
 
-  <div class="nav-right">
-    <button class="upload-btn" onclick="checkUpload()" type="button">
-      <i class="fa-solid fa-cloud-arrow-up"></i> Upload
-    </button>
+ <div class="nav-right">
+  <button class="upload-btn" onclick="checkUpload()" type="button">
+    <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+  </button>
 
-    <?php if ($loggedIn): ?>
-      <a href="dashboard.php" class="user-link" title="Dashboard">
-        <div class="avatar"><?php echo safe($initial); ?></div>
-      </a>
-    <?php else: ?>
-      <button class="login-btn" onclick="window.location.href='login.php'">Log In</button>
-    <?php endif; ?>
-  </div>
+  <?php if (!empty($isAdmin)): ?>
+    <a class="upload-btn" href="admin_rooms.php" title="Admin Panel">
+      <i class="fa-solid fa-shield-halved"></i> Admin View
+    </a>
+  <?php endif; ?>
+
+  <?php if ($loggedIn): ?>
+    <a href="dashboard.php" class="user-link" title="Dashboard">
+      <div class="avatar"><?php echo safe($initial); ?></div>
+    </a>
+  <?php else: ?>
+    <button class="login-btn" onclick="window.location.href='login.php'">Log In</button>
+  <?php endif; ?>
+</div>
+
 </nav>
 
 <div class="wrap">
@@ -709,36 +722,36 @@ body{
 
     <div class="team-grid">
       <div class="team-card">
-        <img src="uploads/team1.jpg" alt="Team Member">
+        <img src="images/purnima.jpg" alt="Team Member">
         <div class="team-info">
-          <h4>Member One</h4>
+          <h4>Purnima Thapaliya </h4>
           <span>Frontend Developer</span>
           <p>Builds clean, responsive interfaces with a strong focus on usability.</p>
         </div>
       </div>
 
       <div class="team-card">
-        <img src="uploads/team2.jpg" alt="Team Member">
+        <img src="images/aashish.png" alt="Team Member">
         <div class="team-info">
-          <h4>Member Two</h4>
+          <h4>Aashish Maharjan</h4>
           <span>Backend Developer</span>
           <p>Handles server-side logic, security, and reliable booking workflows.</p>
         </div>
       </div>
 
       <div class="team-card">
-        <img src="uploads/team3.jpg" alt="Team Member">
+        <img src="images/chusant.jpg" alt="Team Member">
         <div class="team-info">
-          <h4>Member Three</h4>
+          <h4>Sushant Dhakal</h4>
           <span>UI / UX Designer</span>
           <p>Designs modern layouts and improves user experience across the platform.</p>
         </div>
       </div>
 
       <div class="team-card">
-        <img src="uploads/team4.jpg" alt="Team Member">
+        <img src="images/bishal.jpg" alt="Team Member">
         <div class="team-info">
-          <h4>Member Four</h4>
+          <h4>Bishal Bhandari</h4>
           <span>Database Manager</span>
           <p>Maintains data integrity and optimizes system performance.</p>
         </div>
@@ -805,7 +818,7 @@ body{
           </div>
           <div class="sn-footer__row">
             <span class="sn-ico">☎</span>
-            <span>+977 98XXXXXXXX</span>
+            <span>+977 9841745236</span>
           </div>
           <div class="sn-footer__row">
             <span class="sn-ico">✉</span>

@@ -43,7 +43,7 @@ $initial = strtoupper(substr($_SESSION['fullname'] ?? 'U', 0, 1));
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StayNexa</title>
+<title>PahunaStay</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -88,8 +88,10 @@ body{
   font-weight:800; letter-spacing:.3px; color:#fff;
 }
 .logo-badge{
-  width:40px;height:40px;border-radius:14px;
-  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  width:40px;
+  height:40px;
+  border-radius:14px;
+  background: url("images/lg.png") center / cover no-repeat;
   box-shadow: 0 12px 30px rgba(229,57,0,.22);
 }
 .logo a{color:#fff;text-decoration:none;font-size:18px}
@@ -358,7 +360,7 @@ body{
 <nav class="navbar">
   <div class="logo">
     <div class="logo-badge"></div>
-    <a href="index.php">StayNexa</a>
+    <a href="index.php">PahunaStay</a>
   </div>
 
   <ul class="nav-links">
@@ -382,7 +384,7 @@ body{
 
   <div class="breadcrumb">
     <div class="left">
-      <span>StayNexa</span>
+      <span>PahunaStay</span>
       <span style="opacity:.6;">/</span>
       <span>Room Details</span>
     </div>

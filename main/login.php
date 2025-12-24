@@ -1,12 +1,11 @@
 <?php
 session_start();
-// Start the session
 
-// Database connection details (Same as signup.php)
+// Database connection details
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "aashish"; 
+$db   = "aashish";
 
 $conn = new mysqli($host, $user, $pass, $db);
 
@@ -14,32 +13,71 @@ if ($conn->connect_error) {
     die("Database Connection Failed: " . $conn->connect_error);
 }
 
+// ---- ADMIN EMAILS (AUTO ADMIN) ----
+$ADMIN_EMAILS = [
+    "aashishmaharjan48@gmail.com",
+    "dhakalsushant777@gmail.com",
+    "bhandaribishal39@gmail.com"
+];
+
+function isAdminEmail($email, $ADMIN_EMAILS) {
+    $email = strtolower(trim($email));
+    $admins = array_map('strtolower', $ADMIN_EMAILS);
+    return in_array($email, $admins, true);
+}
+
 // ---- PROCESS LOGIN ---- //
-$loginMessage = ""; // ✅ IMPORTANT: prevents undefined variable error
+$loginMessage = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email    = trim($_POST['email']);
-    $password = $_POST['password'];
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
         $loginMessage = "Email and password are required.";
     } else {
-        $stmt = $conn->prepare("SELECT id, fullname, email, password FROM users WHERE email = ?");
+
+        // Fetch user WITH role
+        $stmt = $conn->prepare("SELECT id, fullname, email, password, role FROM users WHERE email = ? LIMIT 1");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
+        if ($result && $result->num_rows === 1) {
+            $userRow = $result->fetch_assoc();
 
-            if (password_verify($password, $user['password'])) {
+            if (password_verify($password, $userRow['password'])) {
 
-                $_SESSION['user_id']   = $user['id'];
-                $_SESSION['fullname']  = $user['fullname'];
-                $_SESSION['email']     = $user['email'];
+                // Decide role
+                $role = ($userRow['role'] ?? 'user');
+
+                // Force admin if email matches
+                if (isAdminEmail($userRow['email'], $ADMIN_EMAILS)) {
+                    $role = "admin";
+
+                    // Keep DB consistent
+                    $up = $conn->prepare("UPDATE users SET role='admin' WHERE email=?");
+                    $up->bind_param("s", $userRow['email']);
+                    $up->execute();
+                    $up->close();
+                } else {
+                    // if not admin email, keep as user (optional: you can also store DB role)
+                    if ($role !== "admin") $role = "user";
+                }
+
+                // Sessions
+                $_SESSION['user_id']   = $userRow['id'];
+                $_SESSION['fullname']  = $userRow['fullname'];
+                $_SESSION['email']     = $userRow['email'];
                 $_SESSION['logged_in'] = true;
+                $_SESSION['role']      = $role;
 
-                header("Location: index.php");
+                // Redirect
+                if ($role === "admin") {
+                    header("Location: admin_rooms.php");
+                } else {
+                    header("Location: index.php");
+                }
                 exit();
 
             } else {

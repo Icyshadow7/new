@@ -7,21 +7,32 @@ $user = "root";
 $pass = "";
 $db   = "aashish"; // Your database name
 
-// Use the mysqli constructor for the connection object
-$conn = new mysqli($host, $user, $pass, $db); 
+$conn = new mysqli($host, $user, $pass, $db);
 
-// Check for connection error
 if ($conn->connect_error) {
     die("Database Connection Failed: " . $conn->connect_error);
+}
+
+// ---- ADMIN EMAILS (AUTO ADMIN) ---- //
+$ADMIN_EMAILS = [
+    "aashishmaharjan48@gmail.com",
+    "dhakalsushant777@gmail.com",
+    "bhandaribishal39@gmail.com"
+];
+
+function isAdminEmail($email, $ADMIN_EMAILS) {
+    $email = strtolower(trim($email));
+    $admins = array_map('strtolower', $ADMIN_EMAILS);
+    return in_array($email, $admins, true);
 }
 
 // ---- PROCESS REGISTRATION ---- //
 $registrationMessage = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $fullName = trim($_POST['fullName']);
-    $email    = trim($_POST['email']);
-    $password = $_POST['password'];
+    $fullName = trim($_POST['fullName'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
     // 1. Basic Validation
     if (empty($fullName) || empty($email) || empty($password)) {
@@ -31,7 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (strlen($password) < 8) {
         $registrationMessage = "<p class='text-red-700'>Password must be at least 8 characters long.</p>";
     } else {
-        // 2. Check if email already exists using Prepared Statements
+
+        // 2. Check if email already exists
         $stmt_check = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $stmt_check->bind_param("s", $email);
         $stmt_check->execute();
@@ -40,29 +52,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt_check->num_rows > 0) {
             $registrationMessage = "<p class='text-red-700'>An account with this email already exists.</p>";
         } else {
-            // 3. Hash the password securely (CRITICAL STEP)
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $createdAt = date('Y-m-d H:i:s'); 
 
-            // 4. Insert new user into the database
-            $stmt_insert = $conn->prepare("INSERT INTO users (fullname, email, password, created_at) VALUES (?, ?, ?, ?)");
-            $stmt_insert->bind_param("ssss", $fullName, $email, $hashedPassword, $createdAt);
+            // 3. Hash password
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $createdAt = date('Y-m-d H:i:s');
+
+            // 4. Set role based on email
+            $role = isAdminEmail($email, $ADMIN_EMAILS) ? "admin" : "user";
+
+            // 5. Insert new user (WITH role)
+            $stmt_insert = $conn->prepare("INSERT INTO users (fullname, email, password, role, created_at) VALUES (?, ?, ?, ?, ?)");
+            $stmt_insert->bind_param("sssss", $fullName, $email, $hashedPassword, $role, $createdAt);
 
             if ($stmt_insert->execute()) {
-                $registrationMessage = "<p class='text-green-700'>Registration successful! Redirecting to login...</p>";
-                
-                 // Redirect to login page after 2 seconds
-                echo "<script>
+
+                // Optional: Set session immediately (if you want auto-login after signup)
+                // If you prefer redirect to login only, you can remove these session lines.
+                $_SESSION['logged_in'] = true;
+                $_SESSION['user_id'] = $stmt_insert->insert_id;
+                $_SESSION['fullname'] = $fullName;
+                $_SESSION['email'] = $email;
+                $_SESSION['role'] = $role;
+
+                // Redirect based on role
+                if ($role === "admin") {
+                    $registrationMessage = "<p class='text-green-700'>Admin account created! Redirecting to Admin Panel...</p>";
+                    echo "<script>
+                        setTimeout(() => {
+                            window.location.href = 'admin_rooms.php';
+                        }, 1500);
+                    </script>";
+                } else {
+                    $registrationMessage = "<p class='text-green-700'>Registration successful! Redirecting to login...</p>";
+                    echo "<script>
                         setTimeout(() => {
                             window.location.href = 'login.php';
-                        }, 2000);
-                      </script>";
+                        }, 1500);
+                    </script>";
+                }
 
             } else {
-                $registrationMessage = "<p class='text-red-700'>Error creating account: " . $conn->error . "</p>";
+                $registrationMessage = "<p class='text-red-700'>Error creating account: " . htmlspecialchars($conn->error) . "</p>";
             }
+
             $stmt_insert->close();
         }
+
         $stmt_check->close();
     }
 }
