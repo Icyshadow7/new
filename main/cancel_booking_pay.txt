@@ -1,0 +1,229 @@
+<?php
+session_start();
+include "db.php";
+
+if (empty($_SESSION['logged_in'])) {
+  header("Location: login.php");
+  exit;
+}
+
+$userId    = (int)($_SESSION['user_id'] ?? 0);
+$bookingId = (int)($_GET['id'] ?? 0);
+
+function safe($v){ return htmlspecialchars($v ?? "", ENT_QUOTES, "UTF-8"); }
+
+if ($bookingId <= 0 || $userId <= 0) {
+  header("Location: my_booking.php");
+  exit;
+}
+
+/* Get booking + room price to calculate 10% fee */
+$sql = "
+SELECT b.id, b.user_id, b.status, r.room_name, r.price
+FROM bookings b
+JOIN rooms r ON r.id = b.room_id
+WHERE b.id = ? AND b.user_id = ?
+LIMIT 1
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ii", $bookingId, $userId);
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$row) {
+  header("Location: my_booking.php");
+  exit;
+}
+
+$status = strtolower(trim($row['status'] ?? 'pending'));
+if (!in_array($status, ['pending','booked','confirmed'])) {
+  header("Location: my_booking.php");
+  exit;
+}
+
+$price    = (float)$row['price'];
+$fee      = (int) round($price * 0.10); // 10%
+$roomName = $row['room_name'];
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Select Payment | Cancel Booking</title>
+<style>
+  :root{
+    --brand:#e53900; --brand2:#ff5a1f; --ink:#0b1220; --muted:#6b7280;
+    --card:#fff; --border:rgba(17,24,39,.10);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter, Arial, sans-serif; color:var(--ink);
+    background: radial-gradient(900px 400px at 10% 10%, rgba(229,57,0,.18), transparent 55%),
+                radial-gradient(900px 400px at 95% 25%, rgba(255,90,31,.14), transparent 55%),
+                linear-gradient(180deg,#f7f7fb,#eef1f8);
+    min-height:100vh; display:grid; place-items:center;
+    padding:24px;
+  }
+  .card{
+    width:min(820px, 95%);
+    background:rgba(255,255,255,.9);
+    border:1px solid var(--border);
+    border-radius:20px;
+    box-shadow:0 22px 60px rgba(0,0,0,.14);
+    overflow:hidden;
+  }
+  .head{
+    padding:18px 20px;
+    border-bottom:1px solid rgba(17,24,39,.08);
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+  }
+  .head h1{margin:0;font-size:20px}
+  .sub{margin:6px 0 0;color:var(--muted);font-weight:600;font-size:13px}
+  .fee{
+    background:rgba(229,57,0,.08);
+    border:1px solid rgba(229,57,0,.20);
+    color:#a61b00;
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:900;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .content{padding:18px 20px 22px}
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:14px;
+  }
+  .method{
+    border:1px solid rgba(17,24,39,.10);
+    border-radius:16px;
+    padding:14px;
+    background:#fff;
+    display:flex; align-items:center; gap:12px;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+    user-select:none;
+  }
+  .method:hover{transform:translateY(-1px); box-shadow:0 14px 28px rgba(0,0,0,.08)}
+  .logo{
+    width:44px; height:44px; border-radius:14px;
+    display:grid; place-items:center;
+    font-weight:900;
+    color:#fff;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));
+  }
+  .m-title{font-weight:900;margin:0}
+  .m-sub{margin:4px 0 0;color:var(--muted);font-size:13px;font-weight:600}
+  .actions{
+    margin-top:16px;
+    display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .btn{
+    border:none; cursor:pointer; text-decoration:none;
+    padding:11px 14px; border-radius:14px;
+    font-weight:900; font-size:14px;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-ghost{background:rgba(17,24,39,.06); color:var(--ink)}
+  .btn-primary{
+    background:linear-gradient(135deg,var(--brand),var(--brand2));
+    color:#fff;
+    box-shadow:0 18px 40px rgba(229,57,0,.20);
+  }
+  .selected{
+    outline:3px solid rgba(229,57,0,.22);
+    border-color: rgba(229,57,0,.25);
+  }
+  @media (max-width: 720px){
+    .grid{grid-template-columns:1fr}
+    .fee{white-space:normal}
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="head">
+    <div>
+      <h1>Select a Payment Method</h1>
+      <p class="sub">
+        Cancel booking for <b><?php echo safe($roomName); ?></b>. Choose a Nepal payment option to pay the cancellation fee.
+      </p>
+    </div>
+    <div class="fee">Cancellation Fee (10%): Rs. <?php echo (int)$fee; ?></div>
+  </div>
+
+  <div class="content">
+    <form method="POST" action="cancel_payment_process.php" id="payForm">
+      <input type="hidden" name="id" value="<?php echo (int)$bookingId; ?>">
+      <input type="hidden" name="method" id="methodInput" value="">
+
+      <div class="grid" id="methods">
+        <div class="method" data-method="esewa">
+          <div class="logo">eS</div>
+          <div>
+            <p class="m-title">eSewa</p>
+            <p class="m-sub">Wallet payment (Nepal)</p>
+          </div>
+        </div>
+
+        <div class="method" data-method="khalti">
+          <div class="logo">K</div>
+          <div>
+            <p class="m-title">Khalti</p>
+            <p class="m-sub">Wallet payment (Nepal)</p>
+          </div>
+        </div>
+
+        <div class="method" data-method="imepay">
+          <div class="logo">IM</div>
+          <div>
+            <p class="m-title">IME Pay</p>
+            <p class="m-sub">Wallet payment (Nepal)</p>
+          </div>
+        </div>
+
+        <div class="method" data-method="bank">
+          <div class="logo">Bk</div>
+          <div>
+            <p class="m-title">Bank Transfer</p>
+            <p class="m-sub">Manual verification</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <!-- FIX: match your actual page name -->
+        <a class="btn btn-ghost" href="my_booking.php">Go Back</a>
+        <button class="btn btn-primary" type="submit">Pay & Cancel Booking</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const methods = document.querySelectorAll(".method");
+  const input = document.getElementById("methodInput");
+  const form = document.getElementById("payForm");
+
+  methods.forEach(m => {
+    m.addEventListener("click", () => {
+      methods.forEach(x => x.classList.remove("selected"));
+      m.classList.add("selected");
+      input.value = m.dataset.method;
+    });
+  });
+
+  form.addEventListener("submit", (e) => {
+    if (!input.value) {
+      e.preventDefault();
+      alert("Please select a payment method.");
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -274,6 +274,56 @@ a {
   background:#ddd;
   overflow:hidden;
 }
+/* My Bookings (highlight style like your navbar) */
+.nav-link{
+  color: rgba(255,255,255,.88);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background .15s ease, transform .15s ease, color .15s ease;
+}
+.nav-link:hover{
+  background: rgba(255,255,255,.10);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+/* make My Bookings look special (purple-ish like your screenshot) */
+.nav-link.mybookings{
+  color: #b084ff;
+}
+.nav-link.mybookings:hover{
+  background: rgba(176,132,255,.14);
+  color: #d7c2ff;
+}
+
+/* Optional: pill button style (if you prefer button look) */
+.nav-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.08);
+  color:#fff;
+  font-weight:800;
+  font-size:13px;
+  text-decoration:none;
+  transition: transform .15s ease, background .15s ease;
+}
+.nav-pill:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.12);
+}
+.nav-pill.mybookings{
+  border-color: rgba(176,132,255,.28);
+  background: rgba(176,132,255,.14);
+  color: #e9ddff;
+}
+
 .room-img img{
   width:100%;
   height:100%;
@@ -615,6 +665,11 @@ a {
   </ul>
 
  <div class="nav-right">
+<?php if (!empty($_SESSION['logged_in']) && $_SESSION['logged_in'] === true): ?>
+  <a class="nav-pill mybookings" href="my_bookings.php">My Bookings</a>
+<?php endif; ?>
+
+
   <button class="upload-btn" onclick="checkUpload()" type="button">
     <i class="fa-solid fa-cloud-arrow-up"></i> Upload
   </button>
